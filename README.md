@@ -1,41 +1,29 @@
 Active Shipping
 ===============
 
-[![Build
-Status](https://secure.travis-ci.org/spree-contrib/spree_active_shipping.png)](http://travis-ci.org/spree-contrib/spree_active_shipping)
-
-This is a Spree extension that wraps the popular [active_shipping](http://github.com/Shopify/active_shipping/tree/master) plugin.
+This is an Open extension that features active_shipping to get shipping rates and tracking info from various carriers.
 
 Installation
 ------------
 
-1. Add this extension to your Gemfile with this line:
+1. Add the gem to your application's Gemfile:
 
-  #### Spree >= 3.1
+To install the latest edge version of this extension, place this line inside your application's Gemfile:
 
-  ```ruby
-  gem 'spree_active_shipping', github: 'spree-contrib/spree_active_shipping'
-  ```
+```ruby
+gem 'open_active_shipping', github: '99cm/open_active_shipping'
+```
+2. Run bundler:
 
-  #### Spree 3.0 and Spree 2.x
+```
+$ bundle
+```
+3. Install migrations and migrate database:
 
-  ```ruby
-  gem 'spree_active_shipping', github: 'spree-contrib/spree_active_shipping', branch: 'X-X-stable'
-  ```
-
-  The `branch` option is important: it must match the version of Spree you're using.
-  For example, use `3-0-stable` if you're using Spree `3-0-stable` or any `3.0.x` version.
-
-2. Install the gem using Bundler:
-  ```ruby
-  bundle install
-  ```
-
-3. Copy & run migrations
-  ```ruby
-  bundle exec rake railties:install:migrations
-  bundle exec rake db:migrate
-  ```
+```
+$ bundle exec rake railties:install:migrations
+$ bundle exec rake db:migrate
+```
 
 4. Restart your server
 
@@ -44,7 +32,7 @@ Installation
 Rate quotes from carriers
 ---
 
-So far, this gem supports getting quotes from UPS, USPS, Canada Post, and FedEx. In general, you will need a developer account to get rates. Please contact the shipping vendor that you wish to use about generating a developer account.
+So far, this gem supports getting quotes from UPS, USPS, and FedEx. In general, you will need a developer account to get rates. Please contact the shipping vendor that you wish to use about generating a developer account.
 
 Once you have an account, you can go to the active shipping settings admin configuration screen to set the right fields. You need to set all of the Origin Address fields and the fields for the carrier you wish to use. To set the settings through a config file, you can assign values to the settings like so:
 
@@ -94,7 +82,7 @@ the rate hash that is parsed by the calculator has service descriptions as keys,
   rate # $9.25
 ```
 
-you can see the rates are given in cents from FedEx (in the rate hash example above), ```spree_active_shipping``` converts them dividing them by 100 before sending them to you
+you can see the rates are given in cents from FedEx (in the rate hash example above), ```open_active_shipping``` converts them dividing them by 100 before sending them to you
 
 **Note:** if you want to integrate to a new carrier service that is not listed below please take care when trying to match the service name key to theirs, there are times when they create dynamic naming conventions, please take as an example **USPS**, you can see the implementation of USPS has the **compute_packages** method overridden to match against a **service_code** key that had to be added to calculator services ( Issue #103 )
 
@@ -105,7 +93,7 @@ Global Handling Fee
 Spree::ActiveShipping::Config[:handling_fee]
 ```
 
-This property allows you to set a global handling fee that will be added to all calculated shipping rates.  Specify the number of cents, not dollars. You can either set it manually or through the admin interface.
+This property allows you to set a global handling fee that will be added to all calculated shipping rates. Specify the number of cents, not dollars. You can either set it manually or through the admin interface.
 
 Weights
 ---------------------
@@ -118,7 +106,7 @@ Spree::ActiveShipping::Config[:default_weight]
 ```
 
 ## Weight units
-Weights are expected globally inside ```spree_active_shipping``` to be entered in a unit that can be divided to oz and a global variable was added to help with unit conversion
+Weights are expected globally inside ```open_active_shipping``` to be entered in a unit that can be divided to oz and a global variable was added to help with unit conversion
 
 ```ruby
 Spree::ActiveShipping::Config[:unit_multiplier]
@@ -128,16 +116,23 @@ It is important to note that by default this variable is set to have a value of 
 
 ### Example of converting from metric system to oz
 
-Say you have your weights in **kg** you would have to set the multiplier to **35.274**
+Say you have your weights in **kg** you would have to set the multiplier to **0.028**
 
 ```ruby
-Spree::ActiveShipping::Config[:unit_multiplier] = 35.274
+Spree::ActiveShipping::Config[:unit_multiplier] = 0.028
 ```
+
+## Product packages ##
+
+This extension adds ProductPackages to the Spree::Product. This model can be used to explicitly define how a product is physically shipped.
+For example, you can have a 200lbs product that ships in five smaller 40lbs packages. This allows you to use calculators who would be unavailable otherwise
+because of their weight limits (if a calculator has a max weight of 150lbs, it would not be possible to ship the aforementioned product if we account
+only for total product weight, while the product packages will allow you to ship it since each individual 40lbs product package is under the limit)
 
 Cache
 ------------
 
-When Spree tries to get rates for a given shipment it calls **Spree::Stock::Estimator**, this class is in charge of getting the rates back from any calculator active for a shipment, the way the estimator determines the shipping methods that will apply to the shipment varies from within spree versions but the general idea is this:
+When Open tries to get rates for a given shipment it calls **Spree::Stock::Estimator**, this class is in charge of getting the rates back from any calculator active for a shipment, the way the estimator determines the shipping methods that will apply to the shipment varies but the general idea is this:
 
 **NOTE:** Shipping methods are tied to calculators
 
@@ -152,7 +147,7 @@ When Spree tries to get rates for a given shipment it calls **Spree::Stock::Esti
   end
 ```
 
-The money line for **spree_active_shipping** is when it calls the calculator's ```available?``` method, this method is actually calling the carrier services, and it checks for rates or errors in the form of ```Spree::ShippingError```, if the rates are there for the specified shipment, the calculator will store the parsed rates with a specific key for each package inside the cache, consider the following example to see why this works and why this is necessary:
+The money line for **open_active_shipping** is when it calls the calculator's ```available?``` method, this method is actually calling the carrier services, and it checks for rates or errors in the form of ```Spree::ShippingError```, if the rates are there for the specified shipment, the calculator will store the parsed rates with a specific key for each package inside the cache, consider the following example to see why this works and why this is necessary:
 
 - User orders N amount of products
 - All of the products from this order are stored in Stock Location 1
@@ -185,8 +180,3 @@ Be sure to bundle your dependencies and then create a dummy test app for the spe
     $ bundle
     $ bundle exec rake test_app
     $ bundle exec rspec spec
-
-Further Reading
----------------
-
-Andrea Singh has also written an excellent [blog post](http://blog.madebydna.com/all/code/2010/05/26/setting-up-usps-shipping-with-spree.html) covering the use of this extension in detail. It is rather old and somewhat outdated.

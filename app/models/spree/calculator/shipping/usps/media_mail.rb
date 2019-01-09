@@ -11,7 +11,7 @@ module Spree
         end
 
         def self.description
-          I18n.t("usps.media_mail")
+          I18n.t('spree.usps.media_mail')
         end
       end
     end

@@ -1,6 +1,6 @@
 <%= form_for [:admin, @product, @product_package], html: { multipart: true } do |f| %>
   <fieldset data-hook="edit_product_package">
-    <legend align="center"><%= Spree.t(:edit_package) %></legend>
+    <legend align="center"><%= I18n.t('spree.edit_package') %></legend>
 
       <%= render partial: 'form', locals: { f: f } %>
 

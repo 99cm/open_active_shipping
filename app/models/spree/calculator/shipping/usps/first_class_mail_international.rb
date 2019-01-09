@@ -13,7 +13,7 @@ module Spree
         end
 
         def self.description
-          I18n.t("usps.first_class_mail_international")
+          I18n.t('spree.usps.first_class_mail_international')
         end
 
 
