@@ -27,24 +27,24 @@ describe Spree::PackageBuilder do
 
     it 'uses the unit multiplier in the calculations' do
       allow(package_builder).to receive(:multiplier).and_return(2)
-      expect(subject.sum(&:weight)).to eq (package.weight * 2)
+      expect(subject.sum { |p| p.weight.value.to_f }).to eq (package.weight * 2)
     end
 
     context 'when one product has a zero weight' do
-      let(:variant_1) { FactoryBot.create(:variant, weight: 0) }
+      let(:variant_1) { create(:variant, weight: 0) }
 
       it 'ignores products with nil weight' do
-        expect(subject.sum(&:weight)).to eq (variant_2.weight * 2)
+        expect(subject.sum { |p| p.weight.value.to_f }).to eq (variant_2.weight * 2)
       end
     end
 
     context 'when one product has a nil weight' do
-      let(:variant_1) { FactoryBot.create(:variant, weight: nil) }
-      let(:variant_2) { FactoryBot.create(:variant, weight: nil) }
+      let(:variant_1) { create(:variant, weight: nil) }
+      let(:variant_2) { create(:variant, weight: nil) }
       let(:default_weight) { Spree::ActiveShipping::Config[:default_weight] }
 
       it 'use the default_weight as a weight value' do
-        expect(subject.sum(&:weight)).to eq(default_weight * 4)
+        expect(subject.sum { |p| p.weight.value.to_f }).to eq(default_weight * 4)
       end
     end
 
@@ -52,7 +52,7 @@ describe Spree::PackageBuilder do
       # We replace the weight of one of the variants we used
       # so Spree::ActiveShipping::Config[:default_weight] is
       # called
-      let(:variant_1) { FactoryBot.create(:variant, weight: nil) }
+      let(:variant_1) { create(:variant, weight: nil) }
 
       before do
         allow(Spree::ActiveShipping::Config).to receive(:[]).with(:default_weight).and_return(nil)
@@ -151,36 +151,31 @@ describe Spree::PackageBuilder do
 
     context 'with an order containing some products with product_packages and some products without' do
       let(:product_weight) { 20 }
-      let(:product_package1) { FactoryBot.create(:product_package, weight: product_weight) }
-      let(:product_package2) { FactoryBot.create(:product_package, weight: product_weight) }
+      let(:product_package1) { create(:product_package, weight: product_weight) }
+      let(:product_package2) { create(:product_package, weight: product_weight) }
 
-      let(:product_no_packages) { FactoryBot.create(:variant, weight: 5) }
+      let(:product_no_packages) { create(:variant, weight: 5) }
+      let(:product) { build(:product, product_packages: [product_package1, product_package2] )}
       let(:product_with_packages) do
-        build(
-          :variant,
-          weight: product_weight,
-          product: build(
-            :product,
-            product_packages: [product_package1, product_package2]
-          )
-        )
+        build :variant, weight: product_weight, product: product
       end
 
       let(:package) do
-        build(:stock_package,
-              stock_location: stock_location,
-              contents: [build_content_items(product_with_packages, 1, order),
-                         build_content_items(product_no_packages, 1, order),
-                         build_content_items(product_no_packages, 1, order)].flatten)
+        contents = [
+          build_content_items(product_with_packages, 1, order),
+          build_content_items(product_no_packages, 1, order),
+          build_content_items(product_no_packages, 1, order)
+        ].flatten
+
+        build :stock_package, stock_location: stock_location,
+              contents: contents
       end
 
       let(:max_weight) { 1000 }
 
       it 'products with product_packages will not be combined with product with no packages' do
         active_shipping_packages = subject
-        # First package in the array is the "default package" who should
-        # only include product_with_no_packages x2
-        expect(active_shipping_packages[0].weight).to eq (product_no_packages.weight * 2)
+        expect(active_shipping_packages[0].weight.value.to_f).to eq(product_no_packages.weight * 2)
       end
     end
   end
